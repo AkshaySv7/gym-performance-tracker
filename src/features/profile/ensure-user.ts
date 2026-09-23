@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/db/prisma";
 
 type AuthUser = {
@@ -28,4 +29,19 @@ export async function ensureUserProfile(authUser: AuthUser) {
         "User",
     },
   });
+}
+
+export async function ensureUser() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    return null;
+  }
+
+  return ensureUserProfile(user);
 }

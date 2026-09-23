@@ -11,6 +11,9 @@ CREATE TYPE "MuscleRole" AS ENUM ('PRIMARY', 'SECONDARY');
 CREATE TYPE "ImageType" AS ENUM ('EXERCISE', 'EQUIPMENT', 'MUSCLE_REFERENCE');
 
 -- CreateEnum
+CREATE TYPE "WarmupType" AS ENUM ('MOBILITY', 'ACTIVATION', 'DYNAMIC', 'GENERAL');
+
+-- CreateEnum
 CREATE TYPE "RecommendationType" AS ENUM ('RECOMMENDED', 'USER_SELECTED', 'KEPT', 'REPLACED', 'INTRODUCED');
 
 -- CreateTable
@@ -46,7 +49,11 @@ CREATE TABLE "Equipment" (
     "description" TEXT,
     "equipmentType" TEXT,
     "imageUrl" TEXT,
+    "minWeightKg" DECIMAL(6,2),
+    "maxWeightKg" DECIMAL(6,2),
+    "isSystem" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Equipment_pkey" PRIMARY KEY ("id")
 );
@@ -56,7 +63,8 @@ CREATE TABLE "UserEquipment" (
     "id" UUID NOT NULL,
     "userId" UUID NOT NULL,
     "equipmentId" UUID NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "notes" TEXT,
+    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "UserEquipment_pkey" PRIMARY KEY ("id")
 );
@@ -108,6 +116,56 @@ CREATE TABLE "MuscleGroup" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "MuscleGroup_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WarmupActivity" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "warmupType" "WarmupType" NOT NULL,
+    "recommendedSets" INTEGER,
+    "recommendedReps" INTEGER,
+    "recommendedDurationSeconds" INTEGER,
+    "restSeconds" INTEGER,
+    "purpose" TEXT,
+    "instructions" TEXT,
+    "beginnerNotes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "WarmupActivity_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WarmupRoutine" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "purpose" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "WarmupRoutine_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WarmupRoutineActivity" (
+    "id" UUID NOT NULL,
+    "routineId" UUID NOT NULL,
+    "activityId" UUID NOT NULL,
+    "orderIndex" INTEGER NOT NULL,
+
+    CONSTRAINT "WarmupRoutineActivity_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "WarmupRoutineMuscle" (
+    "id" UUID NOT NULL,
+    "routineId" UUID NOT NULL,
+    "muscleGroupId" UUID NOT NULL,
+
+    CONSTRAINT "WarmupRoutineMuscle_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -163,21 +221,6 @@ CREATE TABLE "ExerciseImage" (
 );
 
 -- CreateTable
-CREATE TABLE "ExerciseWarmup" (
-    "id" UUID NOT NULL,
-    "exerciseId" UUID NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
-    "recommendedSets" INTEGER,
-    "recommendedReps" INTEGER,
-    "recommendedDurationSeconds" INTEGER,
-    "purpose" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "ExerciseWarmup_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "Workout" (
     "id" UUID NOT NULL,
     "userId" UUID NOT NULL,
@@ -197,10 +240,7 @@ CREATE TABLE "Workout" (
 CREATE TABLE "WorkoutWarmup" (
     "id" UUID NOT NULL,
     "workoutId" UUID NOT NULL,
-    "exerciseWarmupId" UUID NOT NULL,
-    "setsCompleted" INTEGER,
-    "repsCompleted" INTEGER,
-    "durationSeconds" INTEGER,
+    "routineId" UUID NOT NULL,
     "notes" TEXT,
 
     CONSTRAINT "WorkoutWarmup_pkey" PRIMARY KEY ("id")
@@ -263,7 +303,13 @@ CREATE UNIQUE INDEX "UserTrainingPreferences_userId_key" ON "UserTrainingPrefere
 CREATE UNIQUE INDEX "Equipment_name_key" ON "Equipment"("name");
 
 -- CreateIndex
+CREATE INDEX "Equipment_equipmentType_idx" ON "Equipment"("equipmentType");
+
+-- CreateIndex
 CREATE INDEX "UserEquipment_userId_idx" ON "UserEquipment"("userId");
+
+-- CreateIndex
+CREATE INDEX "UserEquipment_equipmentId_idx" ON "UserEquipment"("equipmentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserEquipment_userId_equipmentId_key" ON "UserEquipment"("userId", "equipmentId");
@@ -279,6 +325,36 @@ CREATE UNIQUE INDEX "TrainingStrategyDay_userStrategyId_dayNumber_key" ON "Train
 
 -- CreateIndex
 CREATE UNIQUE INDEX "MuscleGroup_name_key" ON "MuscleGroup"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WarmupActivity_name_key" ON "WarmupActivity"("name");
+
+-- CreateIndex
+CREATE INDEX "WarmupActivity_warmupType_idx" ON "WarmupActivity"("warmupType");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WarmupRoutine_name_key" ON "WarmupRoutine"("name");
+
+-- CreateIndex
+CREATE INDEX "WarmupRoutineActivity_routineId_idx" ON "WarmupRoutineActivity"("routineId");
+
+-- CreateIndex
+CREATE INDEX "WarmupRoutineActivity_activityId_idx" ON "WarmupRoutineActivity"("activityId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WarmupRoutineActivity_routineId_activityId_key" ON "WarmupRoutineActivity"("routineId", "activityId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WarmupRoutineActivity_routineId_orderIndex_key" ON "WarmupRoutineActivity"("routineId", "orderIndex");
+
+-- CreateIndex
+CREATE INDEX "WarmupRoutineMuscle_routineId_idx" ON "WarmupRoutineMuscle"("routineId");
+
+-- CreateIndex
+CREATE INDEX "WarmupRoutineMuscle_muscleGroupId_idx" ON "WarmupRoutineMuscle"("muscleGroupId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WarmupRoutineMuscle_routineId_muscleGroupId_key" ON "WarmupRoutineMuscle"("routineId", "muscleGroupId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Exercise_name_key" ON "Exercise"("name");
@@ -305,13 +381,16 @@ CREATE UNIQUE INDEX "ExerciseEquipment_exerciseId_equipmentId_key" ON "ExerciseE
 CREATE INDEX "ExerciseImage_exerciseId_idx" ON "ExerciseImage"("exerciseId");
 
 -- CreateIndex
-CREATE INDEX "ExerciseWarmup_exerciseId_idx" ON "ExerciseWarmup"("exerciseId");
-
--- CreateIndex
 CREATE INDEX "Workout_userId_workoutDate_idx" ON "Workout"("userId", "workoutDate");
 
 -- CreateIndex
 CREATE INDEX "WorkoutWarmup_workoutId_idx" ON "WorkoutWarmup"("workoutId");
+
+-- CreateIndex
+CREATE INDEX "WorkoutWarmup_routineId_idx" ON "WorkoutWarmup"("routineId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WorkoutWarmup_workoutId_routineId_key" ON "WorkoutWarmup"("workoutId", "routineId");
 
 -- CreateIndex
 CREATE INDEX "WorkoutExercise_workoutId_idx" ON "WorkoutExercise"("workoutId");
@@ -353,6 +432,18 @@ ALTER TABLE "UserStrategy" ADD CONSTRAINT "UserStrategy_strategyId_fkey" FOREIGN
 ALTER TABLE "TrainingStrategyDay" ADD CONSTRAINT "TrainingStrategyDay_userStrategyId_fkey" FOREIGN KEY ("userStrategyId") REFERENCES "UserStrategy"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "WarmupRoutineActivity" ADD CONSTRAINT "WarmupRoutineActivity_routineId_fkey" FOREIGN KEY ("routineId") REFERENCES "WarmupRoutine"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WarmupRoutineActivity" ADD CONSTRAINT "WarmupRoutineActivity_activityId_fkey" FOREIGN KEY ("activityId") REFERENCES "WarmupActivity"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WarmupRoutineMuscle" ADD CONSTRAINT "WarmupRoutineMuscle_routineId_fkey" FOREIGN KEY ("routineId") REFERENCES "WarmupRoutine"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "WarmupRoutineMuscle" ADD CONSTRAINT "WarmupRoutineMuscle_muscleGroupId_fkey" FOREIGN KEY ("muscleGroupId") REFERENCES "MuscleGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "ExerciseMuscle" ADD CONSTRAINT "ExerciseMuscle_exerciseId_fkey" FOREIGN KEY ("exerciseId") REFERENCES "Exercise"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -368,9 +459,6 @@ ALTER TABLE "ExerciseEquipment" ADD CONSTRAINT "ExerciseEquipment_equipmentId_fk
 ALTER TABLE "ExerciseImage" ADD CONSTRAINT "ExerciseImage_exerciseId_fkey" FOREIGN KEY ("exerciseId") REFERENCES "Exercise"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ExerciseWarmup" ADD CONSTRAINT "ExerciseWarmup_exerciseId_fkey" FOREIGN KEY ("exerciseId") REFERENCES "Exercise"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Workout" ADD CONSTRAINT "Workout_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -383,7 +471,7 @@ ALTER TABLE "Workout" ADD CONSTRAINT "Workout_strategyDayId_fkey" FOREIGN KEY ("
 ALTER TABLE "WorkoutWarmup" ADD CONSTRAINT "WorkoutWarmup_workoutId_fkey" FOREIGN KEY ("workoutId") REFERENCES "Workout"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "WorkoutWarmup" ADD CONSTRAINT "WorkoutWarmup_exerciseWarmupId_fkey" FOREIGN KEY ("exerciseWarmupId") REFERENCES "ExerciseWarmup"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "WorkoutWarmup" ADD CONSTRAINT "WorkoutWarmup_routineId_fkey" FOREIGN KEY ("routineId") REFERENCES "WarmupRoutine"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WorkoutExercise" ADD CONSTRAINT "WorkoutExercise_workoutId_fkey" FOREIGN KEY ("workoutId") REFERENCES "Workout"("id") ON DELETE CASCADE ON UPDATE CASCADE;

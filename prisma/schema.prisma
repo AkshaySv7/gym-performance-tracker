@@ -47,6 +47,11 @@ enum RecommendationType {
   INTRODUCED
 }
 
+enum StrategyDayType {
+  WORKOUT
+  REST
+}
+
 model User {
   id                     String           @id @db.Uuid
   displayName            String?
@@ -62,6 +67,7 @@ model User {
   workouts            Workout[]
   hydrationLogs       HydrationLog[]
   bodyweightLogs      BodyweightLog[]
+  recoveryLogs        RecoveryLog[]
 }
 
 model UserTrainingPreferences {
@@ -140,14 +146,17 @@ model UserStrategy {
 }
 
 model TrainingStrategyDay {
-  id             String  @id @default(uuid()) @db.Uuid
-  userStrategyId String  @db.Uuid
-  dayNumber      Int
-  name           String
-  description    String?
+  id                String          @id @default(uuid()) @db.Uuid
+  userStrategyId    String          @db.Uuid
+  dayNumber         Int
+  name              String
+  description       String?
+  dayType           StrategyDayType @default(WORKOUT)
+  focusMuscleGroups String[]        @default([])
 
   userStrategy UserStrategy @relation(fields: [userStrategyId], references: [id], onDelete: Cascade)
   workouts     Workout[]
+  recoveryLogs RecoveryLog[]
 
   @@unique([userStrategyId, dayNumber])
   @@index([userStrategyId])
@@ -161,23 +170,10 @@ model MuscleGroup {
   createdAt   DateTime @default(now())
 
   exercises ExerciseMuscle[]
-  warmups   WarmupMuscle[]
+  routines  WarmupRoutineMuscle[]
 }
 
-model WarmupMuscle {
-  id            String @id @default(uuid()) @db.Uuid
-  warmupId      String @db.Uuid
-  muscleGroupId String @db.Uuid
-
-  warmup      Warmup      @relation(fields: [warmupId], references: [id], onDelete: Cascade)
-  muscleGroup MuscleGroup @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
-
-  @@unique([warmupId, muscleGroupId])
-  @@index([warmupId])
-  @@index([muscleGroupId])
-}
-
-model Warmup {
+model WarmupActivity {
   id                         String     @id @default(uuid()) @db.Uuid
   name                       String     @unique
   description                String
@@ -192,10 +188,50 @@ model Warmup {
   createdAt                  DateTime   @default(now())
   updatedAt                  DateTime   @updatedAt
 
-  muscles        WarmupMuscle[]
-  workoutWarmups WorkoutWarmup[]
+  routineActivities WarmupRoutineActivity[]
 
   @@index([warmupType])
+}
+
+model WarmupRoutine {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  purpose     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  activities     WarmupRoutineActivity[]
+  muscles        WarmupRoutineMuscle[]
+  workoutWarmups WorkoutWarmup[]
+}
+
+model WarmupRoutineActivity {
+  id         String @id @default(uuid()) @db.Uuid
+  routineId  String @db.Uuid
+  activityId String @db.Uuid
+  orderIndex Int
+
+  routine  WarmupRoutine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  activity WarmupActivity @relation(fields: [activityId], references: [id], onDelete: Restrict)
+
+  @@unique([routineId, activityId])
+  @@unique([routineId, orderIndex])
+  @@index([routineId])
+  @@index([activityId])
+}
+
+model WarmupRoutineMuscle {
+  id            String @id @default(uuid()) @db.Uuid
+  routineId     String @db.Uuid
+  muscleGroupId String @db.Uuid
+
+  routine     WarmupRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  muscleGroup MuscleGroup   @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([routineId, muscleGroupId])
+  @@index([routineId])
+  @@index([muscleGroupId])
 }
 
 model Exercise {
@@ -283,19 +319,17 @@ model Workout {
 }
 
 model WorkoutWarmup {
-  id              String  @id @default(uuid()) @db.Uuid
-  workoutId       String  @db.Uuid
-  warmupId        String  @db.Uuid
-  setsCompleted   Int?
-  repsCompleted   Int?
-  durationSeconds Int?
-  notes           String?
+  id        String  @id @default(uuid()) @db.Uuid
+  workoutId String  @db.Uuid
+  routineId String  @db.Uuid
+  notes     String?
 
-  workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  warmup  Warmup  @relation(fields: [warmupId], references: [id], onDelete: Restrict)
+  workout Workout       @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  routine WarmupRoutine @relation(fields: [routineId], references: [id], onDelete: Restrict)
 
+  @@unique([workoutId, routineId])
   @@index([workoutId])
-  @@index([warmupId])
+  @@index([routineId])
 }
 
 model WorkoutExercise {
@@ -355,4 +389,25 @@ model HydrationLog {
 
   @@unique([userId, logDate])
   @@index([userId, logDate])
+}
+
+model RecoveryLog {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  strategyDayId   String?  @db.Uuid
+  recoveryDate    DateTime @db.Date
+  sleepHours      Decimal? @db.Decimal(4, 2)
+  energyLevel     Int?
+  sorenessLevel   Int?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  strategyDay TrainingStrategyDay? @relation(fields: [strategyDayId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, recoveryDate])
+  @@index([userId, recoveryDate])
+  @@index([strategyDayId])
 }

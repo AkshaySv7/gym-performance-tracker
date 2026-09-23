@@ -23,32 +23,31 @@ export async function GET(
 
   const { id } = await context.params;
 
-  const exercise =
-    await prisma.exercise.findUnique({
-      where: {
-        id,
-      },
+  const exercise = await prisma.exercise.findUnique({
+    where: {
+      id,
+    },
 
-      include: {
-        muscles: {
-          include: {
-            muscleGroup: true,
-          },
-        },
-
-        equipment: {
-          include: {
-            equipment: true,
-          },
-        },
-
-        images: {
-          orderBy: {
-            displayOrder: "asc",
-          },
+    include: {
+      muscles: {
+        include: {
+          muscleGroup: true,
         },
       },
-    });
+
+      equipment: {
+        include: {
+          equipment: true,
+        },
+      },
+
+      images: {
+        orderBy: {
+          displayOrder: "asc",
+        },
+      },
+    },
+  });
 
   if (!exercise) {
     return NextResponse.json(
@@ -57,37 +56,59 @@ export async function GET(
     );
   }
 
-  const muscleNames =
-    exercise.muscles.map(
-      (item) => item.muscleGroup.name,
-    );
+  const muscleNames = exercise.muscles.map(
+    (item) => item.muscleGroup.name,
+  );
 
-  const warmups =
-    await prisma.warmup.findMany({
-      where: {
-        muscles: {
-          some: {
-            muscleGroup: {
-              name: {
-                in: muscleNames,
-              },
+  const warmups = await prisma.warmupRoutine.findMany({
+    where: {
+      muscles: {
+        some: {
+          muscleGroup: {
+            name: {
+              in: muscleNames,
             },
           },
         },
       },
+    },
 
-      include: {
-        muscles: {
-          include: {
-            muscleGroup: true,
-          },
+    include: {
+      muscles: {
+        include: {
+          muscleGroup: true,
         },
       },
 
-      orderBy: {
-        name: "asc",
+      activities: {
+        orderBy: {
+          orderIndex: "asc",
+        },
+
+        include: {
+          activity: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              warmupType: true,
+              recommendedSets: true,
+              recommendedReps: true,
+              recommendedDurationSeconds: true,
+              restSeconds: true,
+              purpose: true,
+              instructions: true,
+              beginnerNotes: true,
+            },
+          },
+        },
       },
-    });
+    },
+
+    orderBy: {
+      name: "asc",
+    },
+  });
 
   return NextResponse.json({
     exercise,

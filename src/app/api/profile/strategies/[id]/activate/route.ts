@@ -1,3 +1,5 @@
+//12. API — activate strategy
+
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { activateUserStrategy } from "@/lib/training/strategy-service";

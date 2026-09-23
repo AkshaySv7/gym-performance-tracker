@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -20,13 +20,19 @@ export default function Home() {
           </p>
 
           <div className="mt-8 flex justify-center gap-4">
-            <button className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200">
+            <Link
+              href="/dashboard"
+              className="rounded-lg bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-slate-200"
+            >
               Get Started
-            </button>
+            </Link>
 
-            <button className="rounded-lg border border-slate-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900">
+            <Link
+              href="/exercises"
+              className="rounded-lg border border-slate-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
+            >
               Explore Exercises
-            </button>
+            </Link>
           </div>
         </div>
       </div>

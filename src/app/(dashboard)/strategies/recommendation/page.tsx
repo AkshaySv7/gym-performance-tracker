@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { RecommendationCard } from "@/components/strategies/recommendation-card";
 
+
 type StrategyRecommendation = {
   id: string;
   name: string;
