@@ -591,6 +591,13 @@ export default function DashboardPage() {
             />
 
             <DashboardCard
+              href="/progress"
+              icon="📈"
+              title="Progress"
+              description="View your performance history, progression, and personal records."
+            />
+
+            <DashboardCard
               href="/workouts"
               icon="💪"
               title="Workouts"
@@ -938,6 +945,11 @@ export default function DashboardPage() {
             <QuickLink
               href="/workouts"
               label="Workouts"
+            />
+
+            <QuickLink
+              href="/progress"
+              label="Progress"
             />
           </div>
         </section>
